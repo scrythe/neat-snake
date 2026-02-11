@@ -1,5 +1,6 @@
 use std::io;
 
+use radiate::{Eval, Graph, Op, genotype};
 use rand::{RngExt, rngs::ThreadRng};
 
 const SNAKE_GRID_SIZE: usize = 4;
@@ -37,31 +38,54 @@ fn gen_rand_apple(
     }
     panic!("no free cell for apple, code bug");
 }
+enum GameState {
+    Continue,
+    Finished,
+}
 
-fn main() {
-    let mut rng = rand::rng();
-    let mut snake_grid = [[0; SNAKE_GRID_SIZE]; SNAKE_GRID_SIZE];
-    // let mut snake_cells = Vec::with_capacity(SNAKE_GRID_SIZE.pow(2));
-    // snake_cells.push(Position::new(0, 0));
-    let mut snake_cells = [Position::new(0, 0); SNAKE_GRID_SIZE.pow(2)];
-    let mut snake_length = 1;
-    let mut gen_apple = false;
-    let mut rand_apple = gen_rand_apple(&mut rng, snake_grid, snake_length);
-    snake_grid[rand_apple.y][rand_apple.x] = 1;
+pub struct Game {
+    rng: ThreadRng,
+    snake_grid: [[usize; SNAKE_GRID_SIZE]; SNAKE_GRID_SIZE],
+    snake_body_cells: [Position; SNAKE_GRID_SIZE.pow(2)],
+    snake_length: usize,
+    should_gen_apple: bool,
+    rand_apple_pos: Position,
+    remaining_steps: i32,
+    score: i32,
+}
 
-    'game: loop {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+impl Game {
+    pub fn new() -> Game {
+        let mut rng = rand::rng();
+        let mut snake_grid = [[0; SNAKE_GRID_SIZE]; SNAKE_GRID_SIZE];
+        let snake_body_cells = [Position::new(0, 0); SNAKE_GRID_SIZE.pow(2)];
+        let snake_length = 1;
+        let should_gen_apple = false;
+        let rand_apple_pos = gen_rand_apple(&mut rng, snake_grid, snake_length);
+        snake_grid[rand_apple_pos.y][rand_apple_pos.x] = 1;
+        let remaining_steps = 15;
+        let score = 0;
 
-        let (dir_x, dir_y): (isize, isize) = match input.trim() {
-            "w" => (0, -1),
-            "a" => (-1, 0),
-            "s" => (0, 1),
-            "d" => (1, 0),
-            _ => (0, 0),
-        };
+        Game {
+            rng,
+            snake_grid,
+            snake_body_cells,
+            snake_length,
+            should_gen_apple,
+            rand_apple_pos,
+            remaining_steps,
+            score,
+        }
+    }
 
-        let snake_head = snake_cells[0];
+    fn take_step(&mut self, dir_x: isize, dir_y: isize) -> GameState {
+        if self.remaining_steps <= 0 {
+            self.score -= 50;
+            return GameState::Finished;
+        }
+        self.remaining_steps -= 1;
+
+        let snake_head = self.snake_body_cells[0];
 
         let new_head_x = snake_head.x as isize + dir_x;
         let new_head_y = snake_head.y as isize + dir_y;
@@ -70,48 +94,121 @@ fn main() {
         let new_head_y: usize = new_head_y.clamp(0, SNAKE_GRID_SIZE as isize - 1) as usize;
 
         if snake_head.x == new_head_x && snake_head.y == new_head_y {
-            continue;
+            return GameState::Continue;
         }
 
-        for snake_cell in snake_cells.iter().take(snake_length - 1).skip(1) {
+        for snake_cell in self
+            .snake_body_cells
+            .iter()
+            .take(self.snake_length - 1)
+            .skip(1)
+        {
             if snake_cell.x == new_head_x && snake_cell.y == new_head_y {
-                continue 'game;
+                return GameState::Continue;
             }
         }
 
-        if new_head_x == rand_apple.x && new_head_y == rand_apple.y {
-            snake_length += 1;
-            if snake_length == SNAKE_GRID_SIZE.pow(2) {
-                println!("Game won");
-                return;
+        if new_head_x == self.rand_apple_pos.x && new_head_y == self.rand_apple_pos.y {
+            self.snake_length += 1;
+            if self.snake_length == SNAKE_GRID_SIZE.pow(2) {
+                self.score += 50;
+                return GameState::Finished;
             }
-            gen_apple = true;
+            self.remaining_steps = 15;
+            self.should_gen_apple = true;
         }
 
-        let snake_tail = snake_cells[snake_length - 1];
-        snake_grid[snake_tail.y][snake_tail.x] = 0;
-        for snake_i in (1..snake_length).rev() {
-            let prev_snake_cell = snake_cells[snake_i - 1];
-            dbg!("{:?}", prev_snake_cell);
-            snake_grid[prev_snake_cell.y][prev_snake_cell.x] = snake_i + 18;
-            snake_cells[snake_i] = prev_snake_cell;
+        let snake_tail = self.snake_body_cells[self.snake_length - 1];
+        self.snake_grid[snake_tail.y][snake_tail.x] = 0;
+        for snake_i in (1..self.snake_length).rev() {
+            let prev_snake_cell = self.snake_body_cells[snake_i - 1];
+            // dbg!("{:?}", prev_snake_cell);
+            self.snake_grid[prev_snake_cell.y][prev_snake_cell.x] = snake_i + 18;
+            self.snake_body_cells[snake_i] = prev_snake_cell;
         }
 
-        let snake_head = &mut snake_cells[0];
+        let snake_head = &mut self.snake_body_cells[0];
         snake_head.x = new_head_x;
         snake_head.y = new_head_y;
-        snake_grid[snake_head.y][snake_head.x] = 2;
+        self.snake_grid[snake_head.y][snake_head.x] = 2;
 
-        if gen_apple {
-            rand_apple = gen_rand_apple(&mut rng, snake_grid, snake_length);
-            snake_grid[rand_apple.y][rand_apple.x] = 1;
-            gen_apple = false;
+        if self.should_gen_apple {
+            self.rand_apple_pos = gen_rand_apple(&mut self.rng, self.snake_grid, self.snake_length);
+            self.snake_grid[self.rand_apple_pos.y][self.rand_apple_pos.x] = 1;
+            self.should_gen_apple = false;
         }
+        GameState::Continue
+    }
 
-        dbg!(snake_length);
-        println!("\x1Bc");
-        for snake_row in snake_grid {
-            println!("{:?}", snake_row);
+    pub fn run_game_human(mut self) -> i32 {
+        loop {
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).unwrap();
+
+            let (dir_x, dir_y): (isize, isize) = match input.trim() {
+                "w" => (0, -1),
+                "a" => (-1, 0),
+                "s" => (0, 1),
+                "d" => (1, 0),
+                _ => (0, 0),
+            };
+
+            if let GameState::Finished = self.take_step(dir_x, dir_y) {
+                return self.score;
+            }
+
+            println!("\x1Bc");
+            for snake_row in self.snake_grid {
+                println!("{:?}", snake_row);
+            }
+            println!("----");
         }
     }
+
+    pub fn run_game_ai(mut self, genotype: Graph<Op<f32>>) -> i32 {
+        loop {
+            let observation = self
+                .snake_grid
+                .iter()
+                .flatten()
+                .map(|&x| x as f32)
+                .collect();
+
+            let outputs = genotype.eval(&[observation]);
+            let (max_action, _) = outputs[0]
+                .iter()
+                .enumerate()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+                .unwrap();
+
+            let (dir_x, dir_y): (isize, isize) = match max_action {
+                0 => (0, -1),
+                1 => (-1, 0),
+                2 => (0, 1),
+                3 => (1, 0),
+                _ => (0, 0),
+            };
+
+            if let GameState::Finished = self.take_step(dir_x, dir_y) {
+                return self.score;
+            };
+
+            // println!("\x1Bc");
+            for snake_row in self.snake_grid {
+                println!("{:?}", snake_row);
+            }
+            println!("----");
+        }
+    }
+}
+
+pub fn snake_game_fitness_func(genotype: Graph<Op<f32>>) -> i32 {
+    let snake_game = Game::new();
+    snake_game.run_game_ai(genotype)
+}
+
+fn main() {
+    let snake_game = Game::new();
+    let score = snake_game.run_game_human();
+    println!("{}", score);
 }
