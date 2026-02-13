@@ -1,4 +1,5 @@
-use rand::{RngExt, rngs::ThreadRng};
+use rand::{RngExt, SeedableRng, rngs::ThreadRng};
+use rand_chacha::ChaCha8Rng;
 
 const SNAKE_GRID_SIZE: usize = 8;
 const SNAKE_GREEN_COLORS_AMOUNT: usize = 255 / SNAKE_GRID_SIZE.pow(2);
@@ -21,7 +22,7 @@ impl Position {
 }
 
 fn gen_rand_apple(
-    rng: &mut ThreadRng,
+    rng: &mut ChaCha8Rng,
     snake_grid: [[f32; SNAKE_GRID_SIZE]; SNAKE_GRID_SIZE],
     snake_length: usize,
 ) -> Position {
@@ -48,7 +49,7 @@ pub enum GameState {
 }
 
 pub struct Game {
-    rng: ThreadRng,
+    rng: ChaCha8Rng,
     snake_grid: [[f32; SNAKE_GRID_SIZE]; SNAKE_GRID_SIZE],
     snake_body_cells: [Position; SNAKE_GRID_SIZE.pow(2)],
     snake_length: usize,
@@ -59,8 +60,12 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new() -> Game {
-        let mut rng = rand::rng();
+    pub fn new(seed: Option<u64>) -> Game {
+        let mut rng = match seed {
+            Some(seed) => ChaCha8Rng::seed_from_u64(seed),
+            None => ChaCha8Rng::from_rng(&mut rand::rng()),
+        };
+        // rng.set_stream(0);
         let mut snake_grid = [[0.0; SNAKE_GRID_SIZE]; SNAKE_GRID_SIZE];
         let rand_snake_head_pos = Position::new(
             rng.random_range(0..SNAKE_GRID_SIZE),
@@ -87,7 +92,11 @@ impl Game {
         }
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, seed: Option<u64>) {
+        match seed {
+            Some(seed) => self.rng = ChaCha8Rng::seed_from_u64(seed),
+            None => self.rng = ChaCha8Rng::from_rng(&mut rand::rng()),
+        }
         self.snake_grid = [[0.0; SNAKE_GRID_SIZE]; SNAKE_GRID_SIZE];
         let rand_snake_head_pos = Position::new(
             self.rng.random_range(0..SNAKE_GRID_SIZE),

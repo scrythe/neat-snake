@@ -25,10 +25,10 @@ fn game_loop(game: &mut Game) {
 }
 
 fn main() {
-    let mut game = Game::new();
+    let mut game = Game::new(Some(0));
     game.render();
     game_loop(&mut game);
-    game.reset();
+    game.reset(Some(0));
     game.render();
     game_loop(&mut game);
 }
