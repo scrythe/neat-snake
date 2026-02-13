@@ -87,6 +87,22 @@ impl Game {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.snake_grid = [[0.0; SNAKE_GRID_SIZE]; SNAKE_GRID_SIZE];
+        let rand_snake_head_pos = Position::new(
+            self.rng.random_range(0..SNAKE_GRID_SIZE),
+            self.rng.random_range(0..SNAKE_GRID_SIZE),
+        );
+        self.snake_grid[rand_snake_head_pos.y][rand_snake_head_pos.x] = 2.0;
+        self.snake_body_cells = [rand_snake_head_pos; SNAKE_GRID_SIZE.pow(2)];
+        self.snake_length = 1;
+        self.rand_apple_pos = gen_rand_apple(&mut self.rng, self.snake_grid, self.snake_length);
+        self.snake_grid[self.rand_apple_pos.y][self.rand_apple_pos.x] = 1.0;
+        self.remaining_steps = STEPS_TILL_APPLE;
+        self.steps_away_apple = 0;
+        self.score = 0;
+    }
+
     pub fn step(&mut self, dir_x: isize, dir_y: isize) -> GameState {
         if self.remaining_steps <= 0 {
             // self.score += LOOSING_BONUS;

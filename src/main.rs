@@ -1,10 +1,9 @@
 use std::io;
 
-use crate::snake::{Game, GameState};
 mod snake;
-fn main() {
-    let mut game = Game::new();
-    game.render();
+use crate::snake::{Game, GameState};
+
+fn game_loop(game: &mut Game) {
     loop {
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
@@ -23,4 +22,13 @@ fn main() {
         }
         game.render();
     }
+}
+
+fn main() {
+    let mut game = Game::new();
+    game.render();
+    game_loop(&mut game);
+    game.reset();
+    game.render();
+    game_loop(&mut game);
 }
