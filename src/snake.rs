@@ -1,3 +1,4 @@
+use pyo3::prelude::*;
 use rand::{RngExt, SeedableRng, rngs::ThreadRng};
 use rand_chacha::ChaCha8Rng;
 
@@ -43,11 +44,15 @@ fn gen_rand_apple(
     }
     panic!("no free cell for apple, code bug");
 }
+
+#[pyclass(eq)]
+#[derive(PartialEq)]
 pub enum GameState {
     Continue,
     Finished,
 }
 
+#[pyclass]
 pub struct Game {
     rng: ChaCha8Rng,
     snake_grid: [[f32; SNAKE_GRID_SIZE]; SNAKE_GRID_SIZE],
@@ -59,7 +64,10 @@ pub struct Game {
     score: i32,
 }
 
+#[pymethods]
 impl Game {
+    #[new]
+    #[pyo3(signature = (seed=None))]
     pub fn new(seed: Option<u64>) -> Game {
         let mut rng = match seed {
             Some(seed) => ChaCha8Rng::seed_from_u64(seed),
