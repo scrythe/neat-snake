@@ -1,6 +1,7 @@
 use rand::{RngExt, rngs::ThreadRng};
 
 const SNAKE_GRID_SIZE: usize = 8;
+const SNAKE_GREEN_COLORS_AMOUNT: usize = 255 / SNAKE_GRID_SIZE.pow(2);
 const STEPS_TILL_APPLE: i32 = 50;
 const GETTING_APPLE_BONUS: i32 = 1000;
 const STEP_TOWARDS_APPLE_BONUS: i32 = 10;
@@ -144,7 +145,7 @@ impl Game {
             if self.snake_length == SNAKE_GRID_SIZE.pow(2) {
                 return GameState::Finished;
             }
-            self.remaining_steps = 15;
+            self.remaining_steps = STEPS_TILL_APPLE;
             self.steps_away_apple = 0;
         }
 
@@ -170,8 +171,29 @@ impl Game {
 
     pub fn render(&mut self) {
         println!("\x1Bc");
-        for snake_row in self.snake_grid {
-            println!("{:?}", snake_row);
+        for snake_grid_row in self.snake_grid {
+            for snake_grid_cell in snake_grid_row {
+                match snake_grid_cell {
+                    0.0 => print!("\x1B[48;5;240m  \x1B[0m"),     // empty gray
+                    1.0 => print!("\x1B[48;5;196m  \x1B[0m"),     // apple red
+                    2.0 => print!("\x1B[48;2;0;255;0m  \x1B[0m"), // head green
+                    snake_body_i => {
+                        let mut snake_body_i_no_offset = snake_body_i as usize - 19;
+                        // snake body after head ranges from 0 to 20, if larger it goes backwards
+                        // so 21 becomes 19, and if it does that twice like when its larger than
+                        // 40, than it goes around normally, so just below if statements
+                        if snake_body_i_no_offset >= 40 {
+                            snake_body_i_no_offset %= 40;
+                        }
+                        if snake_body_i_no_offset > 20 {
+                            snake_body_i_no_offset = 20 - snake_body_i_no_offset % 20;
+                        }
+                        let green_color_strength = 200 - snake_body_i_no_offset % 21 * 10;
+                        print!("\x1B[48;2;0;{green_color_strength};0m  \x1B[0m");
+                    }
+                }
+            }
+            println!()
         }
     }
 }
