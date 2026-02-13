@@ -115,16 +115,19 @@ impl Game {
             return GameState::Continue;
         }
 
-        for snake_cell in self
-            .snake_body_cells
-            .iter()
-            .take(self.snake_length - 1)
-            .skip(1)
-        {
+        // if you can go to position that will be free, than instead take(self.snake_length -1) and
+        // below comented code for edge case when length 2
+        for snake_cell in self.snake_body_cells.iter().take(self.snake_length).skip(1) {
             if snake_cell.x == new_head_x && snake_cell.y == new_head_y {
                 return GameState::Continue;
             }
         }
+        // if self.snake_length == 2
+        //     && self.snake_body_cells[1].x == new_head_x
+        //     && self.snake_body_cells[1].y == new_head_y
+        // {
+        //     return GameState::Continue;
+        // }
 
         let is_new_x_closer = self.rand_apple_pos.x.abs_diff(new_head_x)
             < self.rand_apple_pos.x.abs_diff(snake_head.x);
