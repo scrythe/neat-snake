@@ -1,13 +1,7 @@
-[build-system]
-requires = ["maturin>=1.11,<2.0"]
-build-backend = "maturin"
-
 [project]
-name = "neat-snake"
-requires-python = ">=3.10"
-classifiers = [
-  "Programming Language :: Rust",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
-]
-dynamic = ["version"]
+name = "snake-ai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
