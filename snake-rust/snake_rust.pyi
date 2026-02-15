@@ -1,5 +1,4 @@
 from typing import Optional
-from enum import Enum
 
 class Game:
     def __init__(self, seed: Optional[int] = None): ...

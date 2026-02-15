@@ -25,3 +25,7 @@ uv run main.py
 ```
 
 in the root folder
+
+pytorch code inspiration etc. taken from tutorial johnnycode
+
+https://github.com/johnnycode8/dqn_pytorch?tab=MIT-1-ov-file#readme
