@@ -1,3 +1,5 @@
+Work in progress
+
 # neat-snake
 
 snake ai, environment written in rust
